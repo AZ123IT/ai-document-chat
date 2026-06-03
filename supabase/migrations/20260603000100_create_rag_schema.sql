@@ -149,6 +149,24 @@ as $$
   limit least(greatest(coalesce(match_count, 5), 1), 50);
 $$;
 
+revoke execute
+  on function public.match_document_chunks(
+    extensions.vector,
+    integer,
+    double precision,
+    bigint[]
+  )
+  from public, anon, authenticated;
+
+grant execute
+  on function public.match_document_chunks(
+    extensions.vector,
+    integer,
+    double precision,
+    bigint[]
+  )
+  to service_role;
+
 comment on table public.documents is
   'Uploaded source documents for the document chat MVP.';
 

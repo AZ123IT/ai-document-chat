@@ -66,6 +66,9 @@ describe("Supabase RAG schema migration", () => {
     expect(migration).toContain(
       "alter table public.chat_messages enable row level security",
     );
+    expect(migration).toMatch(
+      /revoke execute\s+on function public\.match_document_chunks[\s\S]+from public, anon, authenticated/i,
+    );
   });
 });
 
