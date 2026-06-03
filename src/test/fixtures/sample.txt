@@ -1,0 +1,5 @@
+Project Atlas Notes
+
+The platform should answer questions from uploaded documents.
+
+Each answer must include source citations so reviewers can inspect where the information came from.
