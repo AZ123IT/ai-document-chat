@@ -4,14 +4,21 @@ export type EmbeddingProvider = {
   embedDocuments(texts: string[]): Promise<number[][]>;
 };
 
+export type QueryEmbeddingProvider = {
+  embedQuery(text: string): Promise<number[]>;
+};
+
 export function createPlaceholderEmbeddingProvider(
   dimensions = EMBEDDING_DIMENSIONS,
-): EmbeddingProvider {
+): EmbeddingProvider & QueryEmbeddingProvider {
   return {
     async embedDocuments(texts) {
       return texts.map((text, index) =>
         createPlaceholderEmbedding(text, index, dimensions),
       );
+    },
+    async embedQuery(text) {
+      return createPlaceholderEmbedding(text, 0, dimensions);
     },
   };
 }
