@@ -1,4 +1,7 @@
-import type { QueryEmbeddingProvider } from "@/lib/ingestion/embedding-provider";
+import {
+  EMBEDDING_DIMENSIONS,
+  type QueryEmbeddingProvider,
+} from "@/lib/ingestion/embedding-provider";
 import type {
   Database,
   DocumentFileType,
@@ -59,11 +62,14 @@ export async function retrieveRelevantChunks({
   documentIds,
 }: RetrieveRelevantChunksOptions): Promise<RetrievedChunk[]> {
   const queryEmbedding = await embeddingProvider.embedQuery(question);
+  validateQueryEmbedding(queryEmbedding);
+
   const { data, error } = await supabase.rpc("match_document_chunks", {
     query_embedding: queryEmbedding,
     match_count: matchCount,
     match_threshold: matchThreshold,
-    filter_document_ids: documentIds ?? null,
+    filter_document_ids:
+      documentIds && documentIds.length > 0 ? documentIds : null,
   });
 
   if (error) {
@@ -71,6 +77,18 @@ export async function retrieveRelevantChunks({
   }
 
   return (data ?? []).map(mapRetrievedChunk);
+}
+
+function validateQueryEmbedding(queryEmbedding: number[]) {
+  if (queryEmbedding.length !== EMBEDDING_DIMENSIONS) {
+    throw new Error(
+      `Query embedding must have ${EMBEDDING_DIMENSIONS} dimensions`,
+    );
+  }
+
+  if (!queryEmbedding.every(Number.isFinite)) {
+    throw new Error("Query embedding contains a non-finite value");
+  }
 }
 
 function mapRetrievedChunk(row: MatchDocumentChunksRow): RetrievedChunk {

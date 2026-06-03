@@ -64,6 +64,70 @@ describe("retrieveRelevantChunks", () => {
     ]);
   });
 
+  it("treats an empty document id list as no document filter", async () => {
+    const queryEmbedding = Array.from({ length: 1536 }, () => 0.1);
+    const supabase: SupabaseRetrievalClient = {
+      rpc: vi.fn(async () => ({
+        data: [],
+        error: null,
+      })),
+    };
+
+    await retrieveRelevantChunks({
+      question: "Search everything",
+      embeddingProvider: {
+        embedQuery: vi.fn(async () => queryEmbedding),
+      },
+      supabase,
+      documentIds: [],
+    });
+
+    expect(supabase.rpc).toHaveBeenCalledWith("match_document_chunks", {
+      query_embedding: queryEmbedding,
+      match_count: 5,
+      match_threshold: 0.75,
+      filter_document_ids: null,
+    });
+  });
+
+  it("rejects query embeddings with the wrong vector dimension", async () => {
+    const supabase: SupabaseRetrievalClient = {
+      rpc: vi.fn(),
+    };
+
+    await expect(
+      retrieveRelevantChunks({
+        question: "Bad embedding",
+        embeddingProvider: {
+          embedQuery: vi.fn(async () => [0.1, 0.2]),
+        },
+        supabase,
+      }),
+    ).rejects.toThrow("Query embedding must have 1536 dimensions");
+    expect(supabase.rpc).not.toHaveBeenCalled();
+  });
+
+  it("rejects query embeddings with non-finite values", async () => {
+    const supabase: SupabaseRetrievalClient = {
+      rpc: vi.fn(),
+    };
+
+    await expect(
+      retrieveRelevantChunks({
+        question: "Bad embedding",
+        embeddingProvider: {
+          embedQuery: vi.fn(async () =>
+            Array.from({ length: 1536 }, (_, index) =>
+              index === 3 ? Number.NaN : 0.1,
+            ),
+          ),
+        },
+        supabase,
+      }),
+    ).rejects.toThrow("Query embedding contains a non-finite value");
+    expect(supabase.rpc).not.toHaveBeenCalled();
+  });
+
   it("surfaces RPC failures", async () => {
     await expect(
       retrieveRelevantChunks({

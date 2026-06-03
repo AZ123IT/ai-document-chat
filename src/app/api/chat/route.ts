@@ -1,13 +1,18 @@
 import { createPlaceholderEmbeddingProvider } from "@/lib/ingestion/embedding-provider";
 import { createPlaceholderChatProvider } from "@/lib/rag/chat-provider";
-import { RagChatValidationError, runRagChat } from "@/lib/rag/rag-chat";
+import {
+  RagChatValidationError,
+  parseRagChatRequest,
+  runRagChat,
+} from "@/lib/rag/rag-chat";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    const chatRequest = parseRagChatRequest(body);
     const result = await runRagChat({
-      request: body,
+      request: chatRequest,
       supabase: createServerSupabaseClient(),
       embeddingProvider: createPlaceholderEmbeddingProvider(),
       chatProvider: createPlaceholderChatProvider(),
@@ -23,10 +28,11 @@ export async function POST(request: Request) {
       return Response.json({ error: error.message }, { status: 400 });
     }
 
+    console.error("POST /api/chat failed", error);
+
     return Response.json(
       {
-        error:
-          error instanceof Error ? error.message : "Failed to run document chat",
+        error: "Failed to run document chat",
       },
       { status: 500 },
     );

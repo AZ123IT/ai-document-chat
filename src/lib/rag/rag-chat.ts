@@ -43,6 +43,14 @@ export type SupabaseRagChatClient = SupabaseRetrievalClient & {
         }>;
       };
     };
+    delete(): {
+      eq(
+        column: "id",
+        value: number,
+      ): PromiseLike<{
+        error: SupabaseErrorLike | null;
+      }>;
+    };
   };
   from(table: "chat_messages"): {
     insert(payload: ChatMessagesInsert[]): {
@@ -71,16 +79,10 @@ export type RagChatResult = {
 };
 
 export type RunRagChatOptions = {
-  request: RagChatRequest;
+  request: unknown;
   supabase: SupabaseRagChatClient;
   embeddingProvider: QueryEmbeddingProvider;
   chatProvider: ChatProvider;
-};
-
-type NormalizedRagChatRequest = {
-  question: string;
-  sessionId?: number;
-  documentIds: number[];
 };
 
 export class RagChatValidationError extends Error {
@@ -96,7 +98,7 @@ export async function runRagChat({
   embeddingProvider,
   chatProvider,
 }: RunRagChatOptions): Promise<RagChatResult> {
-  const normalizedRequest = normalizeRagChatRequest(request);
+  const normalizedRequest = parseRagChatRequest(request);
   const chunks = await retrieveRelevantChunks({
     question: normalizedRequest.question,
     supabase,
@@ -108,16 +110,36 @@ export async function runRagChat({
     chunks,
   });
   const { answer } = await chatProvider.generateAnswer(prompt.messages);
-  const sessionId =
-    normalizedRequest.sessionId ??
-    (await createChatSession(supabase, normalizedRequest.question));
-  const messageIds = await saveChatMessages({
-    supabase,
-    sessionId,
-    question: normalizedRequest.question,
-    answer,
-    citations: prompt.citations,
-  });
+  let createdSessionId: number | undefined;
+  let sessionId: number;
+
+  if (normalizedRequest.sessionId === undefined) {
+    createdSessionId = await createChatSession(
+      supabase,
+      normalizedRequest.question,
+    );
+    sessionId = createdSessionId;
+  } else {
+    sessionId = normalizedRequest.sessionId;
+  }
+
+  let messageIds: RagChatResult["messageIds"];
+
+  try {
+    messageIds = await saveChatMessages({
+      supabase,
+      sessionId,
+      question: normalizedRequest.question,
+      answer,
+      citations: prompt.citations,
+    });
+  } catch (error) {
+    if (createdSessionId !== undefined) {
+      await deleteChatSession(supabase, createdSessionId);
+    }
+
+    throw error;
+  }
 
   return {
     answer,
@@ -127,27 +149,36 @@ export async function runRagChat({
   };
 }
 
-function normalizeRagChatRequest(
-  request: RagChatRequest,
-): NormalizedRagChatRequest {
+export function parseRagChatRequest(request: unknown): RagChatRequest {
+  if (!isRecord(request) || typeof request.question !== "string") {
+    throw new RagChatValidationError("Question is required");
+  }
+
   const question = request.question.trim();
 
   if (!question) {
     throw new RagChatValidationError("Question is required");
   }
 
+  const sessionId = request.sessionId;
+
   if (
-    request.sessionId !== undefined &&
-    (!Number.isInteger(request.sessionId) || request.sessionId <= 0)
+    sessionId !== undefined &&
+    (typeof sessionId !== "number" ||
+      !Number.isInteger(sessionId) ||
+      sessionId <= 0)
   ) {
     throw new RagChatValidationError("Session id must be a positive integer");
   }
 
-  const documentIds = request.documentIds ?? [];
+  const documentIds = request.documentIds;
 
   if (
-    !Array.isArray(documentIds) ||
-    !documentIds.every((documentId) => Number.isInteger(documentId) && documentId > 0)
+    documentIds !== undefined &&
+    (!Array.isArray(documentIds) ||
+      !documentIds.every(
+        (documentId) => Number.isInteger(documentId) && documentId > 0,
+      ))
   ) {
     throw new RagChatValidationError(
       "Document ids must be positive integers",
@@ -156,9 +187,16 @@ function normalizeRagChatRequest(
 
   return {
     question,
-    sessionId: request.sessionId,
-    documentIds,
+    sessionId,
+    documentIds:
+      Array.isArray(documentIds) && documentIds.length > 0
+        ? documentIds
+        : undefined,
   };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 async function createChatSession(
@@ -234,6 +272,20 @@ async function saveChatMessages({
     user: userMessage.id,
     assistant: assistantMessage.id,
   };
+}
+
+async function deleteChatSession(
+  supabase: SupabaseRagChatClient,
+  sessionId: number,
+) {
+  const { error } = await supabase
+    .from("chat_sessions")
+    .delete()
+    .eq("id", sessionId);
+
+  if (error) {
+    throw new Error(`Failed to clean up chat session: ${error.message}`);
+  }
 }
 
 function createSessionTitle(question: string) {

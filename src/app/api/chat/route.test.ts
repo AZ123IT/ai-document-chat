@@ -92,4 +92,25 @@ describe("POST /api/chat", () => {
       error: "Question is required",
     });
   });
+
+  it("returns a generic 500 response for internal failures", async () => {
+    runRagChatMock.mockRejectedValue(
+      new Error("Failed to retrieve document chunks: database unavailable"),
+    );
+
+    const { POST } = await import("./route");
+    const response = await POST(
+      new Request("http://localhost/api/chat", {
+        method: "POST",
+        body: JSON.stringify({ question: "What is Atlas?" }),
+      }),
+    );
+
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toEqual({
+      error: "Failed to run document chat",
+    });
+  });
 });
+
+export {};

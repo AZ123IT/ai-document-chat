@@ -63,6 +63,54 @@ describe("runRagChat", () => {
         citations: result.citations,
       },
     ]);
+    expect(supabase.client.rpc).toHaveBeenCalledWith("match_document_chunks", {
+      query_embedding: Array.from({ length: 1536 }, () => 0.1),
+      match_count: 5,
+      match_threshold: 0.75,
+      filter_document_ids: [3],
+    });
+  });
+
+  it("uses no document filter when documentIds are missing or empty", async () => {
+    const missingFilterSupabase = createMockRagSupabase();
+    const emptyFilterSupabase = createMockRagSupabase();
+    const embeddingProvider: QueryEmbeddingProvider = {
+      embedQuery: vi.fn(async () => Array.from({ length: 1536 }, () => 0.1)),
+    };
+    const chatProvider: ChatProvider = {
+      generateAnswer: vi.fn(async () => ({ answer: "Answer [1]" })),
+    };
+
+    await runRagChat({
+      request: {
+        question: "How does Atlas answer?",
+      },
+      supabase: missingFilterSupabase.client,
+      embeddingProvider,
+      chatProvider,
+    });
+    await runRagChat({
+      request: {
+        question: "How does Atlas answer?",
+        documentIds: [],
+      },
+      supabase: emptyFilterSupabase.client,
+      embeddingProvider,
+      chatProvider,
+    });
+
+    expect(missingFilterSupabase.client.rpc).toHaveBeenCalledWith(
+      "match_document_chunks",
+      expect.objectContaining({
+        filter_document_ids: null,
+      }),
+    );
+    expect(emptyFilterSupabase.client.rpc).toHaveBeenCalledWith(
+      "match_document_chunks",
+      expect.objectContaining({
+        filter_document_ids: null,
+      }),
+    );
   });
 
   it("requires a non-empty question", async () => {
@@ -79,11 +127,59 @@ describe("runRagChat", () => {
       }),
     ).rejects.toThrow("Question is required");
   });
+
+  it.each([{}, null, { question: 123 }])(
+    "rejects invalid request body shape %#",
+    async (request) => {
+      await expect(
+        runRagChat({
+          request,
+          supabase: createMockRagSupabase().client,
+          embeddingProvider: {
+            embedQuery: vi.fn(async () =>
+              Array.from({ length: 1536 }, () => 0.1),
+            ),
+          },
+          chatProvider: {
+            generateAnswer: vi.fn(async () => ({ answer: "unused" })),
+          },
+        }),
+      ).rejects.toThrow("Question is required");
+    },
+  );
+
+  it("cleans up a newly-created session when message persistence fails", async () => {
+    const supabase = createMockRagSupabase({
+      messageError: { message: "message insert failed" },
+    });
+
+    await expect(
+      runRagChat({
+        request: {
+          question: "How does Atlas answer?",
+        },
+        supabase: supabase.client,
+        embeddingProvider: {
+          embedQuery: vi.fn(async () => Array.from({ length: 1536 }, () => 0.1)),
+        },
+        chatProvider: {
+          generateAnswer: vi.fn(async () => ({ answer: "Answer [1]" })),
+        },
+      }),
+    ).rejects.toThrow("Failed to save chat messages: message insert failed");
+
+    expect(supabase.deletedSessionIds).toEqual([55]);
+  });
 });
 
-function createMockRagSupabase() {
+type MockRagSupabaseOptions = {
+  messageError?: { message: string };
+};
+
+function createMockRagSupabase(options: MockRagSupabaseOptions = {}) {
   const insertedSessions: unknown[] = [];
   const insertedMessages: unknown[] = [];
+  const deletedSessionIds: number[] = [];
 
   const client = {
     rpc: vi.fn(async () => ({
@@ -119,6 +215,17 @@ function createMockRagSupabase() {
               })),
             };
           }),
+          delete: vi.fn(() => ({
+            eq: vi.fn(async (column: string, value: number) => {
+              if (column === "id") {
+                deletedSessionIds.push(value);
+              }
+
+              return {
+                error: null,
+              };
+            }),
+          })),
         };
       }
 
@@ -129,11 +236,13 @@ function createMockRagSupabase() {
 
             return {
               select: vi.fn(async () => ({
-                data: [
+                data: options.messageError
+                  ? null
+                  : [
                   { id: 201, role: "user" },
                   { id: 202, role: "assistant" },
-                ],
-                error: null,
+                    ],
+                error: options.messageError ?? null,
               })),
             };
           }),
@@ -148,5 +257,6 @@ function createMockRagSupabase() {
     client: client as unknown as SupabaseRagChatClient,
     insertedSessions,
     insertedMessages,
+    deletedSessionIds,
   };
 }
