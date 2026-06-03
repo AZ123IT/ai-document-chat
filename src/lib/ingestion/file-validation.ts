@@ -39,13 +39,34 @@ export function validateIngestionFile(
     throw new IngestionFileValidationError("Document file is too large");
   }
 
-  const fileType = getSupportedFileType(fileName, file.mimeType);
+  const extensionFileType = getSupportedExtensionFileType(fileName);
+  const mimeFileType = getSupportedMimeFileType(file.mimeType);
+
+  if (file.mimeType && !mimeFileType) {
+    throw new IngestionFileValidationError(
+      "Only PDF and TXT documents are supported",
+    );
+  }
+
+  if (
+    extensionFileType &&
+    mimeFileType &&
+    extensionFileType !== mimeFileType
+  ) {
+    throw new IngestionFileValidationError(
+      "Document file type does not match MIME type",
+    );
+  }
+
+  const fileType = extensionFileType ?? mimeFileType;
 
   if (!fileType) {
     throw new IngestionFileValidationError(
       "Only PDF and TXT documents are supported",
     );
   }
+
+  validateFileContents(file.buffer, fileType);
 
   return {
     fileName,
@@ -55,8 +76,7 @@ export function validateIngestionFile(
   };
 }
 
-function getSupportedFileType(
-  fileName: string,
+function getSupportedMimeFileType(
   mimeType?: string,
 ): SupportedDocumentType | null {
   if (mimeType === "application/pdf") {
@@ -67,6 +87,12 @@ function getSupportedFileType(
     return "txt";
   }
 
+  return null;
+}
+
+function getSupportedExtensionFileType(
+  fileName: string,
+): SupportedDocumentType | null {
   const lowerFileName = fileName.toLowerCase();
 
   if (lowerFileName.endsWith(".pdf")) {
@@ -78,4 +104,21 @@ function getSupportedFileType(
   }
 
   return null;
+}
+
+function validateFileContents(buffer: Buffer, fileType: SupportedDocumentType) {
+  if (
+    fileType === "pdf" &&
+    buffer.subarray(0, 5).toString("ascii") !== "%PDF-"
+  ) {
+    throw new IngestionFileValidationError(
+      "PDF document is missing a valid PDF header",
+    );
+  }
+
+  if (fileType === "txt" && buffer.includes(0)) {
+    throw new IngestionFileValidationError(
+      "TXT document appears to contain binary data",
+    );
+  }
 }

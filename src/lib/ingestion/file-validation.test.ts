@@ -22,7 +22,7 @@ describe("validateIngestionFile", () => {
   it("accepts PDFs by extension when MIME type is missing", () => {
     const result = validateIngestionFile({
       fileName: "paper.PDF",
-      buffer: Buffer.from("%PDF sample"),
+      buffer: Buffer.from("%PDF-1.4 sample"),
     });
 
     expect(result.fileType).toBe("pdf");
@@ -37,6 +37,36 @@ describe("validateIngestionFile", () => {
         buffer: Buffer.from("# Notes"),
       }),
     ).toThrow("Only PDF and TXT documents are supported");
+  });
+
+  it("rejects MIME and extension mismatches", () => {
+    expect(() =>
+      validateIngestionFile({
+        fileName: "notes.txt",
+        mimeType: "application/pdf",
+        buffer: Buffer.from("%PDF-1.4 sample"),
+      }),
+    ).toThrow("Document file type does not match MIME type");
+  });
+
+  it("rejects PDFs without a PDF header", () => {
+    expect(() =>
+      validateIngestionFile({
+        fileName: "paper.pdf",
+        mimeType: "application/pdf",
+        buffer: Buffer.from("not actually a pdf"),
+      }),
+    ).toThrow("PDF document is missing a valid PDF header");
+  });
+
+  it("rejects TXT files that contain NUL bytes", () => {
+    expect(() =>
+      validateIngestionFile({
+        fileName: "notes.txt",
+        mimeType: "text/plain",
+        buffer: Buffer.from([0x48, 0x00, 0x69]),
+      }),
+    ).toThrow("TXT document appears to contain binary data");
   });
 
   it("rejects empty files", () => {

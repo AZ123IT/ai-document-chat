@@ -1,4 +1,9 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 const createClientMock = vi.hoisted(() => vi.fn());
+
+vi.mock("server-only", () => ({}));
 
 vi.mock("@supabase/supabase-js", () => ({
   createClient: createClientMock,
@@ -36,6 +41,14 @@ describe("createServerSupabaseClient", () => {
         },
       },
     );
+  });
+
+  it("marks the service-role client module as server-only", () => {
+    const source = readFileSync(join(process.cwd(), "src/lib/supabase/server.ts"), {
+      encoding: "utf8",
+    });
+
+    expect(source).toMatch(/^import "server-only";/);
   });
 
   it("rejects missing server Supabase configuration", async () => {

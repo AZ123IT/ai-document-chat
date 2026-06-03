@@ -111,10 +111,72 @@ describe("ingestDocument", () => {
         },
         supabase: supabase.client,
         embeddingProvider: {
-          embedDocuments: vi.fn(async () => [[0]]),
+          embedDocuments: vi.fn(async () => [
+            Array.from({ length: 1536 }, () => 0.2),
+          ]),
         },
       }),
     ).rejects.toThrow("Failed to store document: insert failed");
+  });
+
+  it("cleans up the document row when chunk insert fails", async () => {
+    const supabase = createMockSupabase({
+      chunkError: { message: "chunk insert failed" },
+    });
+
+    await expect(
+      ingestDocument({
+        file: {
+          fileName: "notes.txt",
+          mimeType: "text/plain",
+          buffer: Buffer.from("Stored text"),
+        },
+        supabase: supabase.client,
+        embeddingProvider: {
+          embedDocuments: vi.fn(async () => [
+            Array.from({ length: 1536 }, () => 0.2),
+          ]),
+        },
+      }),
+    ).rejects.toThrow("Failed to store document chunks: chunk insert failed");
+
+    expect(supabase.deletedDocumentIds).toEqual([42]);
+  });
+
+  it("rejects embeddings with the wrong vector dimension", async () => {
+    await expect(
+      ingestDocument({
+        file: {
+          fileName: "notes.txt",
+          mimeType: "text/plain",
+          buffer: Buffer.from("Stored text"),
+        },
+        supabase: createMockSupabase().client,
+        embeddingProvider: {
+          embedDocuments: vi.fn(async () => [[0.1, 0.2]]),
+        },
+      }),
+    ).rejects.toThrow("Embedding at index 0 must have 1536 dimensions");
+  });
+
+  it("rejects embeddings with non-finite values", async () => {
+    await expect(
+      ingestDocument({
+        file: {
+          fileName: "notes.txt",
+          mimeType: "text/plain",
+          buffer: Buffer.from("Stored text"),
+        },
+        supabase: createMockSupabase().client,
+        embeddingProvider: {
+          embedDocuments: vi.fn(async () => [
+            Array.from({ length: 1536 }, (_, index) =>
+              index === 7 ? Number.NaN : 0.1,
+            ),
+          ]),
+        },
+      }),
+    ).rejects.toThrow("Embedding at index 0 contains a non-finite value");
   });
 });
 
@@ -126,6 +188,7 @@ type MockSupabaseOptions = {
 function createMockSupabase(options: MockSupabaseOptions = {}) {
   const insertedDocuments: unknown[] = [];
   const insertedChunks: unknown[] = [];
+  const deletedDocumentIds: number[] = [];
 
   const client = {
     from: vi.fn((table: string) => {
@@ -143,6 +206,17 @@ function createMockSupabase(options: MockSupabaseOptions = {}) {
               })),
             };
           }),
+          delete: vi.fn(() => ({
+            eq: vi.fn(async (column: string, value: number) => {
+              if (column === "id") {
+                deletedDocumentIds.push(value);
+              }
+
+              return {
+                error: null,
+              };
+            }),
+          })),
         };
       }
 
@@ -174,5 +248,6 @@ function createMockSupabase(options: MockSupabaseOptions = {}) {
     client: client as unknown as SupabaseDocumentIngestionClient,
     insertedDocuments,
     insertedChunks,
+    deletedDocumentIds,
   };
 }

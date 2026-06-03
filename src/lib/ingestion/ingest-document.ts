@@ -4,6 +4,7 @@ import type { ChunkTextOptions } from "@/lib/documents/types";
 import type { Database } from "@/lib/supabase/database.types";
 
 import {
+  EMBEDDING_DIMENSIONS,
   createPlaceholderEmbeddingProvider,
   type EmbeddingProvider,
 } from "./embedding-provider";
@@ -38,6 +39,14 @@ export type SupabaseDocumentIngestionClient = {
           error: SupabaseErrorLike | null;
         }>;
       };
+    };
+    delete(): {
+      eq(
+        column: "id",
+        value: number,
+      ): Promise<{
+        error: SupabaseErrorLike | null;
+      }>;
     };
   };
   from(table: "document_chunks"): {
@@ -98,6 +107,8 @@ export async function ingestDocument({
     throw new Error("Embedding provider returned the wrong number of embeddings");
   }
 
+  validateEmbeddings(embeddings);
+
   const { data: storedDocument, error: documentError } = await supabase
     .from("documents")
     .insert({
@@ -138,10 +149,12 @@ export async function ingestDocument({
     .select("id, chunk_index");
 
   if (chunksError) {
+    await deleteStoredDocument(supabase, storedDocument.id);
     throw new Error(`Failed to store document chunks: ${chunksError.message}`);
   }
 
   if (!storedChunks || storedChunks.length !== chunks.length) {
+    await deleteStoredDocument(supabase, storedDocument.id);
     throw new Error("Failed to store document chunks: unexpected insert result");
   }
 
@@ -152,4 +165,34 @@ export async function ingestDocument({
       .toSorted((left, right) => left.chunk_index - right.chunk_index)
       .map((chunk) => chunk.id),
   };
+}
+
+function validateEmbeddings(embeddings: number[][]) {
+  embeddings.forEach((embedding, index) => {
+    if (embedding.length !== EMBEDDING_DIMENSIONS) {
+      throw new Error(
+        `Embedding at index ${index} must have ${EMBEDDING_DIMENSIONS} dimensions`,
+      );
+    }
+
+    if (!embedding.every(Number.isFinite)) {
+      throw new Error(
+        `Embedding at index ${index} contains a non-finite value`,
+      );
+    }
+  });
+}
+
+async function deleteStoredDocument(
+  supabase: SupabaseDocumentIngestionClient,
+  documentId: number,
+) {
+  const { error } = await supabase
+    .from("documents")
+    .delete()
+    .eq("id", documentId);
+
+  if (error) {
+    throw new Error(`Failed to clean up document: ${error.message}`);
+  }
 }
