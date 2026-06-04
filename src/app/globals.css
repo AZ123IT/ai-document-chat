@@ -26,9 +26,9 @@ body {
 }
 
 .dashboard-backdrop {
-  background-color: #f4f2ec;
+  background-color: #f4f3ee;
   background-image:
-    linear-gradient(rgba(63, 63, 70, 0.055) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(63, 63, 70, 0.055) 1px, transparent 1px);
-  background-size: 32px 32px;
+    linear-gradient(rgba(13, 17, 23, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(13, 17, 23, 0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
 }

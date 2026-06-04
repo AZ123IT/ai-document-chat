@@ -3,7 +3,7 @@ export type LocalDocument = {
   name: string;
   type: "PDF" | "TXT";
   sizeLabel: string;
-  status: "Staged locally";
+  status: "staged";
 };
 
 export type SourceCitation = {

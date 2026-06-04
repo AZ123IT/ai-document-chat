@@ -36,7 +36,7 @@ describe("Home", () => {
     await user.upload(screen.getByLabelText("Choose document"), file);
 
     expect(screen.getByText("atlas-notes.pdf")).toBeInTheDocument();
-    expect(screen.getByText("Staged locally")).toBeInTheDocument();
+    expect(screen.getByText("staged")).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -55,7 +55,7 @@ describe("Home", () => {
 
     expect(screen.getByText("atlas-notes.txt")).toBeInTheDocument();
     expect(screen.getByText("TXT - 14 B")).toBeInTheDocument();
-    expect(screen.getByText("Staged locally")).toBeInTheDocument();
+    expect(screen.getByText("staged")).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

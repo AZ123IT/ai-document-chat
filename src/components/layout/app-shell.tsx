@@ -23,7 +23,7 @@ export function AppShell() {
   const documentCount = documents.length;
   const dashboardStats = useMemo(
     () => [
-      { label: "documents", value: documentCount },
+      { label: "docs", value: documentCount },
       { label: "messages", value: messages.length },
       { label: "sources", value: citations.length },
     ],
@@ -45,7 +45,7 @@ export function AppShell() {
         name: file.name,
         type: documentType,
         sizeLabel: formatFileSize(file.size),
-        status: "Staged locally",
+        status: "staged",
       },
     ]);
   }
@@ -83,35 +83,31 @@ export function AppShell() {
 
   return (
     <main className="dashboard-backdrop min-h-screen text-zinc-950">
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-6 sm:px-6 lg:px-8">
-        <header className="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-[0_20px_60px_rgba(24,24,27,0.08)]">
-          <div className="border-b border-zinc-100 bg-zinc-950 px-5 py-2 text-[11px] font-semibold uppercase text-zinc-100">
-            RAG portfolio app
-          </div>
-          <div className="flex flex-col gap-6 px-5 py-6 lg:flex-row lg:items-end lg:justify-between lg:px-6">
-            <div>
-              <p className="text-xs font-semibold uppercase text-emerald-700">
-                Document-grounded AI workspace
-              </p>
-              <h1 className="mt-3 text-3xl font-semibold text-zinc-950 sm:text-4xl">
-                {APP_NAME}
-              </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-600 sm:text-base">
-                {APP_DESCRIPTION}
-              </p>
+      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-3 py-3 sm:px-5 lg:px-6">
+        <header className="rounded-lg border border-zinc-800 bg-[#0d1117] px-4 py-3 text-white shadow-[0_18px_55px_rgba(13,17,23,0.18)]">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_0_5px_rgba(52,211,153,0.12)]" />
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase text-zinc-400">
+                  RAG portfolio app
+                </p>
+                <h1 className="truncate text-lg font-semibold text-white sm:text-xl">
+                  {APP_NAME}
+                </h1>
+              </div>
             </div>
 
-            <dl className="grid grid-cols-3 gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-2 shadow-inner">
+            <dl className="flex flex-wrap gap-2">
               {dashboardStats.map((stat) => (
                 <div
-                  className="min-w-20 rounded-md bg-white px-3 py-2 text-center shadow-sm ring-1 ring-zinc-200/80"
+                  className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 shadow-inner"
                   key={stat.label}
                 >
-                  <dt className="text-[11px] font-semibold uppercase text-zinc-500">
-                    {stat.label}
-                  </dt>
-                  <dd className="mt-1 text-xl font-semibold text-zinc-950">
+                  <dt className="sr-only">{stat.label}</dt>
+                  <dd className="text-xs font-semibold text-zinc-100">
                     {stat.value}
+                    <span className="ml-1 text-zinc-300">{stat.label}</span>
                   </dd>
                 </div>
               ))}
@@ -119,15 +115,15 @@ export function AppShell() {
           </div>
         </header>
 
-        <section className="grid flex-1 gap-5 py-5 lg:grid-cols-[400px_minmax(0,1fr)]">
-          <div className="space-y-5">
+        <section className="mt-3 grid flex-1 overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-[0_24px_70px_rgba(24,24,27,0.12)] sm:grid-cols-[320px_minmax(0,1fr)] lg:grid-cols-[360px_minmax(0,1fr)]">
+          <aside className="space-y-0 divide-y divide-zinc-200 bg-zinc-50/80">
             <DocumentUploadPanel
               error={uploadError}
               onFileSelected={handleFileSelected}
             />
             <DocumentList documents={documents} />
             <SourceCitations citations={citations} />
-          </div>
+          </aside>
 
           <ChatPanel
             error={chatError}
@@ -136,6 +132,7 @@ export function AppShell() {
             onSubmit={handleChatSubmit}
           />
         </section>
+        <p className="px-1 py-3 text-xs text-zinc-500">{APP_DESCRIPTION}</p>
       </div>
     </main>
   );
