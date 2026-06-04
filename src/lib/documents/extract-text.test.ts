@@ -54,6 +54,17 @@ describe("extractDocumentText", () => {
 });
 
 describe("extractTextFromPdf", () => {
+  it("keeps pdf-parse configured for Next.js route-handler runtime", async () => {
+    const source = await readFile(
+      join(process.cwd(), "src/lib/documents/extract-text.ts"),
+      "utf8",
+    );
+    const nextConfig = await readFile(join(process.cwd(), "next.config.ts"), "utf8");
+
+    expect(source).toMatch(/^import "pdf-parse\/worker";/);
+    expect(nextConfig).toContain('serverExternalPackages: ["pdf-parse", "@napi-rs/canvas"]');
+  });
+
   it("extracts PDF text and page metadata from a PDF buffer", async () => {
     const result = await extractTextFromPdf(makeSinglePagePdf("Portfolio PDF Text"), {
       fileName: "portfolio.pdf",

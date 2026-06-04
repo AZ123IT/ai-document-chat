@@ -3,7 +3,7 @@ export type LocalDocument = {
   name: string;
   type: "PDF" | "TXT";
   sizeLabel: string;
-  status: "staged" | "ready";
+  status: "uploading" | "failed" | "ready";
 };
 
 export type DocumentResponse = {

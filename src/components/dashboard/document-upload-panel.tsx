@@ -7,7 +7,6 @@ type DocumentUploadPanelProps = {
   isUploading: boolean;
   selectedDocument: LocalDocument | null;
   successMessage: string | null;
-  onUpload(): void;
   onFileSelected(file: File): void;
 };
 
@@ -16,7 +15,6 @@ export function DocumentUploadPanel({
   isUploading,
   selectedDocument,
   successMessage,
-  onUpload,
   onFileSelected,
 }: DocumentUploadPanelProps) {
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -53,7 +51,7 @@ export function DocumentUploadPanel({
           Drop document here
         </span>
         <span className="mt-1 text-sm text-zinc-500">
-          PDF or TXT - then upload to index
+          PDF or TXT - uploads automatically
         </span>
         <input
           aria-label="Choose document"
@@ -79,15 +77,13 @@ export function DocumentUploadPanel({
               {selectedDocument.status}
             </span>
           </div>
-          <button
-            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-zinc-300"
-            disabled={isUploading}
-            onClick={onUpload}
-            type="button"
-          >
-            <UploadIcon />
-            {isUploading ? "Uploading..." : "Upload document"}
-          </button>
+          <p className="mt-3 text-sm font-medium text-emerald-900">
+            {isUploading
+              ? "Uploading and indexing..."
+              : selectedDocument.status === "failed"
+                ? "Upload failed. Choose the file again to retry."
+                : "Document is ready for chat."}
+          </p>
         </div>
       ) : null}
 

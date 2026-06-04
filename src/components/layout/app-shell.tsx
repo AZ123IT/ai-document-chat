@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ChatPanel, sendChatQuestion } from "@/components/dashboard/chat-panel";
 import type {
@@ -19,7 +19,6 @@ export function AppShell() {
   const [documents, setDocuments] = useState<LocalDocument[]>([]);
   const [documentListError, setDocumentListError] = useState<string | null>(null);
   const [isDocumentListLoading, setIsDocumentListLoading] = useState(true);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedDocument, setSelectedDocument] = useState<LocalDocument | null>(
     null,
   );
@@ -30,6 +29,7 @@ export function AppShell() {
   const [citations, setCitations] = useState<SourceCitation[]>([]);
   const [chatError, setChatError] = useState<string | null>(null);
   const [isChatLoading, setIsChatLoading] = useState(false);
+  const uploadRequestId = useRef(0);
   const documentCount = documents.length;
   const dashboardStats = useMemo(
     () => [
@@ -87,42 +87,37 @@ export function AppShell() {
   }, []);
 
   function handleFileSelected(file: File) {
+    const requestId = uploadRequestId.current + 1;
+    uploadRequestId.current = requestId;
     const documentType = getSupportedDocumentType(file);
 
     if (!documentType) {
       setUploadError("Only PDF and TXT files are supported.");
       setUploadSuccess(null);
-      setSelectedFile(null);
       setSelectedDocument(null);
+      setIsUploadLoading(false);
       return;
     }
 
     setUploadError(null);
     setUploadSuccess(null);
-    setSelectedFile(file);
     setSelectedDocument({
       id: `${file.name}-${file.size}-${file.lastModified}`,
       name: file.name,
       type: documentType,
       sizeLabel: formatFileSize(file.size),
-      status: "staged",
+      status: "uploading",
     });
+    void uploadDocumentFile(file, requestId);
   }
 
-  async function handleUploadSelectedFile() {
-    if (!selectedFile) {
-      setUploadError("Choose a PDF or TXT document before uploading.");
-      return;
-    }
-
-    setUploadError(null);
-    setUploadSuccess(null);
+  async function uploadDocumentFile(file: File, requestId: number) {
     setIsUploadLoading(true);
 
     try {
       const formData = new FormData();
-      formData.set("file", selectedFile, selectedFile.name);
-      formData.set("fileName", selectedFile.name);
+      formData.set("file", file, file.name);
+      formData.set("fileName", file.name);
 
       const response = await fetch("/api/documents", {
         method: "POST",
@@ -144,18 +139,30 @@ export function AppShell() {
         throw new Error("Failed to upload document");
       }
 
+      if (uploadRequestId.current !== requestId) {
+        return;
+      }
+
       setUploadSuccess(
-        `Upload complete. ${payload.ingestion.chunkCount} chunks indexed.`,
+        `Uploaded and indexed. ${payload.ingestion.chunkCount} chunks ready.`,
       );
-      setSelectedFile(null);
       setSelectedDocument(null);
       await refreshDocuments();
     } catch (error) {
+      if (uploadRequestId.current !== requestId) {
+        return;
+      }
+
       const message =
         error instanceof Error ? error.message : "Failed to upload document";
       setUploadError(`Unable to upload document: ${message}`);
+      setSelectedDocument((currentDocument) =>
+        currentDocument ? { ...currentDocument, status: "failed" } : currentDocument,
+      );
     } finally {
-      setIsUploadLoading(false);
+      if (uploadRequestId.current === requestId) {
+        setIsUploadLoading(false);
+      }
     }
   }
 
@@ -232,7 +239,6 @@ export function AppShell() {
               selectedDocument={selectedDocument}
               successMessage={uploadSuccess}
               onFileSelected={handleFileSelected}
-              onUpload={handleUploadSelectedFile}
             />
             <DocumentList
               documents={documents}

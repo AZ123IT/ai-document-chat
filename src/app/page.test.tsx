@@ -52,10 +52,22 @@ describe("Home", () => {
     expect(fetchMock).toHaveBeenCalledWith("/api/documents");
   });
 
-  it("stages a selected PDF file without uploading immediately", async () => {
+  it("uploads a selected PDF file automatically", async () => {
     const user = userEvent.setup();
+    const uploadedDocument = createDocument({
+      id: 13,
+      fileName: "atlas-notes.pdf",
+      fileType: "PDF",
+      fileSizeBytes: 14,
+    });
+    let resolveUploadFetch: (response: Response) => void = () => {};
+    const uploadPromise = new Promise<Response>((resolve) => {
+      resolveUploadFetch = resolve;
+    });
     const fetchMock = mockFetch({
       documents: [],
+      documentsAfterUpload: [uploadedDocument],
+      uploadResponse: () => uploadPromise,
     });
 
     render(<Home />);
@@ -68,14 +80,45 @@ describe("Home", () => {
 
     expect(screen.getByText("atlas-notes.pdf")).toBeInTheDocument();
     expect(screen.getByText("PDF - 14 B")).toBeInTheDocument();
-    expect(screen.getByText("staged")).toBeInTheDocument();
-    expect(getFetchCalls(fetchMock, "/api/documents", "POST")).toHaveLength(0);
+    expect(screen.getByText("uploading")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(getFetchCalls(fetchMock, "/api/documents", "POST")).toHaveLength(1);
+    });
+    expect(screen.queryByRole("button", { name: "Upload document" })).not.toBeInTheDocument();
+
+    resolveUploadFetch(
+      Response.json({
+        document: {
+          id: 13,
+          fileName: "atlas-notes.pdf",
+          fileType: "PDF",
+          mimeType: "application/pdf",
+          fileSizeBytes: 14,
+          status: "ready",
+        },
+        ingestion: {
+          chunkCount: 2,
+        },
+      }),
+    );
   });
 
-  it("stages a selected TXT file without uploading immediately", async () => {
+  it("uploads a selected TXT file automatically", async () => {
     const user = userEvent.setup();
+    const uploadedDocument = createDocument({
+      id: 12,
+      fileName: "atlas-notes.txt",
+      fileType: "TXT",
+      fileSizeBytes: 14,
+    });
+    let resolveUploadFetch: (response: Response) => void = () => {};
+    const uploadPromise = new Promise<Response>((resolve) => {
+      resolveUploadFetch = resolve;
+    });
     const fetchMock = mockFetch({
       documents: [],
+      documentsAfterUpload: [uploadedDocument],
+      uploadResponse: () => uploadPromise,
     });
 
     render(<Home />);
@@ -88,11 +131,30 @@ describe("Home", () => {
 
     expect(screen.getByText("atlas-notes.txt")).toBeInTheDocument();
     expect(screen.getByText("TXT - 14 B")).toBeInTheDocument();
-    expect(screen.getByText("staged")).toBeInTheDocument();
-    expect(getFetchCalls(fetchMock, "/api/documents", "POST")).toHaveLength(0);
+    expect(screen.getByText("uploading")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(getFetchCalls(fetchMock, "/api/documents", "POST")).toHaveLength(1);
+    });
+    expect(screen.queryByRole("button", { name: "Upload document" })).not.toBeInTheDocument();
+
+    resolveUploadFetch(
+      Response.json({
+        document: {
+          id: 12,
+          fileName: "atlas-notes.txt",
+          fileType: "TXT",
+          mimeType: "text/plain",
+          fileSizeBytes: 14,
+          status: "ready",
+        },
+        ingestion: {
+          chunkCount: 2,
+        },
+      }),
+    );
   });
 
-  it("selecting a valid file and clicking upload calls POST /api/documents", async () => {
+  it("selecting a valid file calls POST /api/documents", async () => {
     const user = userEvent.setup();
     const uploadedDocument = createDocument({
       id: 12,
@@ -127,7 +189,6 @@ describe("Home", () => {
         type: "text/plain",
       }),
     );
-    await user.click(screen.getByRole("button", { name: "Upload document" }));
 
     await waitFor(() => {
       expect(getFetchCalls(fetchMock, "/api/documents", "POST")).toHaveLength(1);
@@ -173,9 +234,8 @@ describe("Home", () => {
         type: "text/plain",
       }),
     );
-    await user.click(screen.getByRole("button", { name: "Upload document" }));
 
-    expect(await screen.findByText("Upload complete. 2 chunks indexed.")).toBeInTheDocument();
+    expect(await screen.findByText("Uploaded and indexed. 2 chunks ready.")).toBeInTheDocument();
     expect(await screen.findByText("atlas-notes.txt")).toBeInTheDocument();
     expect(screen.getByText("ready")).toBeInTheDocument();
   });
@@ -199,7 +259,6 @@ describe("Home", () => {
         type: "text/plain",
       }),
     );
-    await user.click(screen.getByRole("button", { name: "Upload document" }));
 
     expect(
       await screen.findByText(
@@ -256,10 +315,15 @@ describe("Home", () => {
     expect(getFetchCalls(fetchMock, "/api/documents", "POST")).toHaveLength(0);
   });
 
-  it("clears the previously staged file after an invalid file selection", async () => {
+  it("clears the selected file after an invalid file selection", async () => {
     const user = userEvent.setup();
-    const fetchMock = mockFetch({
+    let resolveUploadFetch: (response: Response) => void = () => {};
+    const uploadPromise = new Promise<Response>((resolve) => {
+      resolveUploadFetch = resolve;
+    });
+    mockFetch({
       documents: [],
+      uploadResponse: () => uploadPromise,
     });
 
     render(<Home />);
@@ -272,9 +336,7 @@ describe("Home", () => {
       }),
     );
     expect(screen.getByText("atlas-notes.txt")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Upload document" }),
-    ).toBeInTheDocument();
+    expect(screen.getByText("uploading")).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Choose document"), {
       target: {
@@ -289,7 +351,13 @@ describe("Home", () => {
     expect(
       screen.queryByRole("button", { name: "Upload document" }),
     ).not.toBeInTheDocument();
-    expect(getFetchCalls(fetchMock, "/api/documents", "POST")).toHaveLength(0);
+
+    resolveUploadFetch(
+      Response.json({
+        document: null,
+        ingestion: { chunkCount: 0 },
+      }),
+    );
   });
 
   it("submits a chat question and renders the answer with source citations", async () => {
@@ -390,7 +458,7 @@ type FetchMockOptions = {
   documents: DocumentResponse[];
   documentsAfterUpload?: DocumentResponse[];
   uploadStatus?: number;
-  uploadResponse?: unknown;
+  uploadResponse?: unknown | (() => Promise<Response>);
   chatResponse?: () => Promise<Response>;
 };
 
@@ -409,6 +477,10 @@ function mockFetch({
 
     if (url === "/api/documents" && method === "POST") {
       uploadSucceeded = uploadStatus >= 200 && uploadStatus < 300;
+
+      if (typeof uploadResponse === "function") {
+        return uploadResponse();
+      }
 
       return Promise.resolve(
         Response.json(
