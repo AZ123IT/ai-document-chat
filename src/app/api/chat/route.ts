@@ -1,5 +1,8 @@
 import { createPlaceholderEmbeddingProvider } from "@/lib/ingestion/embedding-provider";
-import { createPlaceholderChatProvider } from "@/lib/rag/chat-provider";
+import {
+  ChatProviderConfigurationError,
+  createConfiguredChatProvider,
+} from "@/lib/rag/chat-provider-factory";
 import {
   RagChatValidationError,
   parseRagChatRequest,
@@ -15,7 +18,7 @@ export async function POST(request: Request) {
       request: chatRequest,
       supabase: createServerSupabaseClient(),
       embeddingProvider: createPlaceholderEmbeddingProvider(),
-      chatProvider: createPlaceholderChatProvider(),
+      chatProvider: createConfiguredChatProvider(),
     });
 
     return Response.json(result);
@@ -26,6 +29,17 @@ export async function POST(request: Request) {
 
     if (error instanceof RagChatValidationError) {
       return Response.json({ error: error.message }, { status: 400 });
+    }
+
+    if (error instanceof ChatProviderConfigurationError) {
+      console.error("POST /api/chat chat provider configuration failed", error);
+
+      return Response.json(
+        {
+          error: "Chat provider is not configured",
+        },
+        { status: 500 },
+      );
     }
 
     console.error("POST /api/chat failed", error);

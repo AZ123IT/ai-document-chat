@@ -1,7 +1,9 @@
 const createServerSupabaseClientMock = vi.hoisted(() => vi.fn());
 const createPlaceholderEmbeddingProviderMock = vi.hoisted(() => vi.fn());
-const createPlaceholderChatProviderMock = vi.hoisted(() => vi.fn());
+const createConfiguredChatProviderMock = vi.hoisted(() => vi.fn());
 const runRagChatMock = vi.hoisted(() => vi.fn());
+
+vi.mock("server-only", () => ({}));
 
 vi.mock("@/lib/supabase/server", () => ({
   createServerSupabaseClient: createServerSupabaseClientMock,
@@ -11,9 +13,16 @@ vi.mock("@/lib/ingestion/embedding-provider", () => ({
   createPlaceholderEmbeddingProvider: createPlaceholderEmbeddingProviderMock,
 }));
 
-vi.mock("@/lib/rag/chat-provider", () => ({
-  createPlaceholderChatProvider: createPlaceholderChatProviderMock,
-}));
+vi.mock("@/lib/rag/chat-provider-factory", async () => {
+  const actual = await vi.importActual<
+    typeof import("@/lib/rag/chat-provider-factory")
+  >("@/lib/rag/chat-provider-factory");
+
+  return {
+    ...actual,
+    createConfiguredChatProvider: createConfiguredChatProviderMock,
+  };
+});
 
 vi.mock("@/lib/rag/rag-chat", async () => {
   const actual = await vi.importActual<typeof import("@/lib/rag/rag-chat")>(
@@ -31,7 +40,7 @@ describe("POST /api/chat", () => {
     vi.resetModules();
     createServerSupabaseClientMock.mockReset();
     createPlaceholderEmbeddingProviderMock.mockReset();
-    createPlaceholderChatProviderMock.mockReset();
+    createConfiguredChatProviderMock.mockReset();
     runRagChatMock.mockReset();
   });
 
@@ -42,7 +51,7 @@ describe("POST /api/chat", () => {
 
     createServerSupabaseClientMock.mockReturnValue(supabase);
     createPlaceholderEmbeddingProviderMock.mockReturnValue(embeddingProvider);
-    createPlaceholderChatProviderMock.mockReturnValue(chatProvider);
+    createConfiguredChatProviderMock.mockReturnValue(chatProvider);
     runRagChatMock.mockResolvedValue({
       answer: "Grounded answer [1]",
       citations: [{ label: "1", chunkId: 7 }],

@@ -1,6 +1,8 @@
 const createServerSupabaseClientMock = vi.hoisted(() => vi.fn());
 const createPlaceholderEmbeddingProviderMock = vi.hoisted(() => vi.fn());
-const createPlaceholderChatProviderMock = vi.hoisted(() => vi.fn());
+const createConfiguredChatProviderMock = vi.hoisted(() => vi.fn());
+
+vi.mock("server-only", () => ({}));
 
 vi.mock("@/lib/supabase/server", () => ({
   createServerSupabaseClient: createServerSupabaseClientMock,
@@ -17,14 +19,14 @@ vi.mock("@/lib/ingestion/embedding-provider", async () => {
   };
 });
 
-vi.mock("@/lib/rag/chat-provider", async () => {
-  const actual = await vi.importActual<typeof import("@/lib/rag/chat-provider")>(
-    "@/lib/rag/chat-provider",
-  );
+vi.mock("@/lib/rag/chat-provider-factory", async () => {
+  const actual = await vi.importActual<
+    typeof import("@/lib/rag/chat-provider-factory")
+  >("@/lib/rag/chat-provider-factory");
 
   return {
     ...actual,
-    createPlaceholderChatProvider: createPlaceholderChatProviderMock,
+    createConfiguredChatProvider: createConfiguredChatProviderMock,
   };
 });
 
@@ -33,7 +35,7 @@ describe("POST /api/chat request validation", () => {
     vi.resetModules();
     createServerSupabaseClientMock.mockReset();
     createPlaceholderEmbeddingProviderMock.mockReset();
-    createPlaceholderChatProviderMock.mockReset();
+    createConfiguredChatProviderMock.mockReset();
   });
 
   it.each([{}, null, { question: 123 }])(
@@ -53,7 +55,7 @@ describe("POST /api/chat request validation", () => {
       });
       expect(createServerSupabaseClientMock).not.toHaveBeenCalled();
       expect(createPlaceholderEmbeddingProviderMock).not.toHaveBeenCalled();
-      expect(createPlaceholderChatProviderMock).not.toHaveBeenCalled();
+      expect(createConfiguredChatProviderMock).not.toHaveBeenCalled();
     },
   );
 });
