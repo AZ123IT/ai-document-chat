@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ChatPanel, sendChatQuestion } from "@/components/dashboard/chat-panel";
 import type {
   ChatMessage,
+  DocumentsListResponse,
   LocalDocument,
   SourceCitation,
+  UploadDocumentResponse,
 } from "@/components/dashboard/dashboard-types";
 import { DocumentList } from "@/components/dashboard/document-list";
 import { DocumentUploadPanel } from "@/components/dashboard/document-upload-panel";
@@ -15,7 +17,15 @@ import { APP_DESCRIPTION, APP_NAME } from "@/lib/constants";
 
 export function AppShell() {
   const [documents, setDocuments] = useState<LocalDocument[]>([]);
+  const [documentListError, setDocumentListError] = useState<string | null>(null);
+  const [isDocumentListLoading, setIsDocumentListLoading] = useState(true);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<LocalDocument | null>(
+    null,
+  );
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+  const [isUploadLoading, setIsUploadLoading] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [citations, setCitations] = useState<SourceCitation[]>([]);
   const [chatError, setChatError] = useState<string | null>(null);
@@ -30,6 +40,52 @@ export function AppShell() {
     [citations.length, documentCount, messages.length],
   );
 
+  const refreshDocuments = useCallback(async () => {
+    setDocumentListError(null);
+    setIsDocumentListLoading(true);
+
+    try {
+      setDocuments(await fetchDashboardDocuments());
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to load documents";
+      setDocumentListError(message);
+    } finally {
+      setIsDocumentListLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let isActive = true;
+
+    async function loadInitialDocuments() {
+      try {
+        const nextDocuments = await fetchDashboardDocuments();
+
+        if (isActive) {
+          setDocuments(nextDocuments);
+        }
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Failed to load documents";
+
+        if (isActive) {
+          setDocumentListError(message);
+        }
+      } finally {
+        if (isActive) {
+          setIsDocumentListLoading(false);
+        }
+      }
+    }
+
+    void loadInitialDocuments();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
   function handleFileSelected(file: File) {
     const documentType = getSupportedDocumentType(file);
 
@@ -39,15 +95,65 @@ export function AppShell() {
     }
 
     setUploadError(null);
-    setDocuments([
-      {
-        id: `${file.name}-${file.size}-${file.lastModified}`,
-        name: file.name,
-        type: documentType,
-        sizeLabel: formatFileSize(file.size),
-        status: "staged",
-      },
-    ]);
+    setUploadSuccess(null);
+    setSelectedFile(file);
+    setSelectedDocument({
+      id: `${file.name}-${file.size}-${file.lastModified}`,
+      name: file.name,
+      type: documentType,
+      sizeLabel: formatFileSize(file.size),
+      status: "staged",
+    });
+  }
+
+  async function handleUploadSelectedFile() {
+    if (!selectedFile) {
+      setUploadError("Choose a PDF or TXT document before uploading.");
+      return;
+    }
+
+    setUploadError(null);
+    setUploadSuccess(null);
+    setIsUploadLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.set("file", selectedFile, selectedFile.name);
+      formData.set("fileName", selectedFile.name);
+
+      const response = await fetch("/api/documents", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = (await response.json()) as
+        | UploadDocumentResponse
+        | { error?: string };
+
+      if (!response.ok) {
+        throw new Error(
+          "error" in payload && payload.error
+            ? payload.error
+            : "Failed to upload document",
+        );
+      }
+
+      if (!isUploadDocumentResponse(payload)) {
+        throw new Error("Failed to upload document");
+      }
+
+      setUploadSuccess(
+        `Upload complete. ${payload.ingestion.chunkCount} chunks indexed.`,
+      );
+      setSelectedFile(null);
+      setSelectedDocument(null);
+      await refreshDocuments();
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to upload document";
+      setUploadError(`Unable to upload document: ${message}`);
+    } finally {
+      setIsUploadLoading(false);
+    }
   }
 
   async function handleChatSubmit(question: string) {
@@ -119,9 +225,17 @@ export function AppShell() {
           <aside className="space-y-0 divide-y divide-zinc-200 bg-zinc-50/80">
             <DocumentUploadPanel
               error={uploadError}
+              isUploading={isUploadLoading}
+              selectedDocument={selectedDocument}
+              successMessage={uploadSuccess}
               onFileSelected={handleFileSelected}
+              onUpload={handleUploadSelectedFile}
             />
-            <DocumentList documents={documents} />
+            <DocumentList
+              documents={documents}
+              error={documentListError}
+              isLoading={isDocumentListLoading}
+            />
             <SourceCitations citations={citations} />
           </aside>
 
@@ -137,6 +251,51 @@ export function AppShell() {
     </main>
   );
 }
+
+async function fetchDashboardDocuments() {
+  const response = await fetch("/api/documents");
+  const payload = (await response.json()) as
+    | DocumentsListResponse
+    | { error?: string };
+
+  if (!response.ok) {
+    throw new Error(
+      "error" in payload && payload.error
+        ? payload.error
+        : "Failed to load documents",
+    );
+  }
+
+  if (!isDocumentsListResponse(payload)) {
+    throw new Error("Failed to load documents");
+  }
+
+  return payload.documents.map(toDashboardDocument);
+}
+
+function isDocumentsListResponse(
+  payload: DocumentsListResponse | { error?: string },
+): payload is DocumentsListResponse {
+  return "documents" in payload && Array.isArray(payload.documents);
+}
+
+function isUploadDocumentResponse(
+  payload: UploadDocumentResponse | { error?: string },
+): payload is UploadDocumentResponse {
+  return "ingestion" in payload && typeof payload.ingestion.chunkCount === "number";
+}
+
+function toDashboardDocument(document: DocumentListItem): LocalDocument {
+  return {
+    id: String(document.id),
+    name: document.fileName,
+    type: document.fileType,
+    sizeLabel: formatFileSize(document.fileSizeBytes),
+    status: document.status,
+  };
+}
+
+type DocumentListItem = DocumentsListResponse["documents"][number];
 
 function getSupportedDocumentType(file: File): LocalDocument["type"] | null {
   const fileName = file.name.toLowerCase();

@@ -1,12 +1,22 @@
 import type { ChangeEvent } from "react";
 
+import type { LocalDocument } from "./dashboard-types";
+
 type DocumentUploadPanelProps = {
   error: string | null;
+  isUploading: boolean;
+  selectedDocument: LocalDocument | null;
+  successMessage: string | null;
+  onUpload(): void;
   onFileSelected(file: File): void;
 };
 
 export function DocumentUploadPanel({
   error,
+  isUploading,
+  selectedDocument,
+  successMessage,
+  onUpload,
   onFileSelected,
 }: DocumentUploadPanelProps) {
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -43,7 +53,7 @@ export function DocumentUploadPanel({
           Drop document here
         </span>
         <span className="mt-1 text-sm text-zinc-500">
-          PDF or TXT - local preview
+          PDF or TXT - then upload to index
         </span>
         <input
           aria-label="Choose document"
@@ -54,9 +64,40 @@ export function DocumentUploadPanel({
         />
       </label>
 
+      {selectedDocument ? (
+        <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-zinc-950">
+                {selectedDocument.name}
+              </p>
+              <p className="mt-0.5 text-xs font-medium text-emerald-800">
+                {selectedDocument.type} - {selectedDocument.sizeLabel}
+              </p>
+            </div>
+            <span className="rounded-full border border-emerald-300 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase text-emerald-800">
+              {selectedDocument.status}
+            </span>
+          </div>
+          <button
+            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-zinc-300"
+            disabled={isUploading}
+            onClick={onUpload}
+            type="button"
+          >
+            <UploadIcon />
+            {isUploading ? "Uploading..." : "Upload document"}
+          </button>
+        </div>
+      ) : null}
+
       {error ? (
         <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
           {error}
+        </p>
+      ) : successMessage ? (
+        <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800">
+          {successMessage}
         </p>
       ) : (
         <div className="mt-3 grid grid-cols-2 gap-2">
@@ -64,7 +105,7 @@ export function DocumentUploadPanel({
             <p className="text-[11px] font-semibold uppercase text-zinc-500">
               Mode
             </p>
-            <p className="mt-1 text-sm font-semibold text-zinc-900">Local</p>
+            <p className="mt-1 text-sm font-semibold text-zinc-900">Server</p>
           </div>
           <div className="rounded-md border border-zinc-200 bg-white px-3 py-2">
             <p className="text-[11px] font-semibold uppercase text-zinc-500">

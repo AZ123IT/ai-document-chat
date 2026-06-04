@@ -34,7 +34,7 @@ export type SupabaseDocumentIngestionClient = {
   from(table: "documents"): {
     insert(payload: DocumentsInsert): {
       select(columns: string): {
-        single(): Promise<{
+        single(): PromiseLike<{
           data: DocumentInsertResult | null;
           error: SupabaseErrorLike | null;
         }>;
@@ -44,14 +44,14 @@ export type SupabaseDocumentIngestionClient = {
       eq(
         column: "id",
         value: number,
-      ): Promise<{
+      ): PromiseLike<{
         error: SupabaseErrorLike | null;
       }>;
     };
   };
   from(table: "document_chunks"): {
     insert(payload: DocumentChunksInsert[]): {
-      select(columns: string): Promise<{
+      select(columns: string): PromiseLike<{
         data: ChunkInsertResult[] | null;
         error: SupabaseErrorLike | null;
       }>;

@@ -2,9 +2,15 @@ import type { LocalDocument } from "./dashboard-types";
 
 type DocumentListProps = {
   documents: LocalDocument[];
+  error: string | null;
+  isLoading: boolean;
 };
 
-export function DocumentList({ documents }: DocumentListProps) {
+export function DocumentList({ documents, error, isLoading }: DocumentListProps) {
+  const readyDocumentCount = documents.filter(
+    (document) => document.status === "ready",
+  ).length;
+
   return (
     <section className="p-4">
       <div className="flex items-center justify-between gap-3">
@@ -15,12 +21,28 @@ export function DocumentList({ documents }: DocumentListProps) {
           <h2 className="mt-1 text-sm font-semibold text-zinc-950">Documents</h2>
         </div>
         <span className="rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[11px] font-semibold uppercase text-indigo-700">
-          {documents.length} staged
+          {readyDocumentCount} ready
         </span>
       </div>
 
       <div className="mt-4 space-y-2">
-        {documents.length === 0 ? (
+        {error ? (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-4">
+            <p className="text-sm font-semibold text-red-800">
+              Unable to load documents
+            </p>
+            <p className="mt-0.5 text-xs text-red-700">{error}</p>
+          </div>
+        ) : isLoading ? (
+          <div className="rounded-lg border border-zinc-200 bg-white px-3 py-4">
+            <p className="text-sm font-semibold text-zinc-800">
+              Loading documents...
+            </p>
+            <p className="mt-0.5 text-xs text-zinc-500">
+              Fetching indexed PDFs and TXT files.
+            </p>
+          </div>
+        ) : documents.length === 0 ? (
           <div className="rounded-lg border border-zinc-200 bg-white px-3 py-4">
             <div className="flex items-center gap-3">
               <span className="flex h-9 w-9 items-center justify-center rounded-md bg-zinc-100 text-zinc-500">
@@ -28,10 +50,10 @@ export function DocumentList({ documents }: DocumentListProps) {
               </span>
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-zinc-800">
-                  No documents selected
+                  No documents indexed
                 </p>
                 <p className="mt-0.5 text-xs text-zinc-500">
-                  Pick a PDF or TXT file to stage it locally.
+                  Upload a PDF or TXT file to make it available for chat.
                 </p>
               </div>
             </div>
