@@ -32,31 +32,52 @@ export function ChatPanel({
   }
 
   return (
-    <section className="flex min-h-[560px] flex-col rounded-lg border border-zinc-200 bg-white shadow-sm">
-      <div className="border-b border-zinc-200 p-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
-          chat
-        </p>
-        <h2 className="mt-2 text-lg font-semibold text-zinc-950">
-          Ask your documents
-        </h2>
+    <section className="flex min-h-[620px] flex-col overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-[0_24px_70px_rgba(24,24,27,0.1)]">
+      <div className="border-b border-zinc-200 bg-white p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase text-emerald-700">
+              chat
+            </p>
+            <h2 className="mt-2 text-lg font-semibold text-zinc-950">
+              Ask your documents
+            </h2>
+          </div>
+          <span className="rounded-md border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs font-semibold text-zinc-600">
+            {messages.length} messages
+          </span>
+        </div>
       </div>
 
-      <div className="flex-1 space-y-4 overflow-y-auto p-5">
+      <div className="flex-1 space-y-4 overflow-y-auto bg-zinc-50/75 p-5">
         {messages.length === 0 ? (
-          <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-5 text-sm text-zinc-500">
-            Ask a question after staging a document.
+          <div className="rounded-lg border border-dashed border-zinc-300 bg-white px-4 py-8 text-center shadow-sm">
+            <p className="text-sm font-semibold text-zinc-800">
+              Ask a question after staging a document.
+            </p>
+            <p className="mt-1 text-sm text-zinc-500">
+              Answers will appear here with source-backed citations.
+            </p>
           </div>
         ) : (
           messages.map((message) => (
             <article
               className={
                 message.role === "user"
-                  ? "ml-auto max-w-[85%] rounded-lg bg-zinc-950 px-4 py-3 text-white"
-                  : "max-w-[92%] rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-zinc-900"
+                  ? "ml-auto max-w-[85%] rounded-lg bg-zinc-950 px-4 py-3 text-white shadow-md"
+                  : "max-w-[92%] rounded-lg border border-zinc-200 bg-white px-4 py-3 text-zinc-900 shadow-sm"
               }
               key={message.id}
             >
+              <p
+                className={
+                  message.role === "user"
+                    ? "mb-1 text-[11px] font-semibold uppercase text-zinc-300"
+                    : "mb-1 text-[11px] font-semibold uppercase text-emerald-700"
+                }
+              >
+                {message.role === "user" ? "You" : "Assistant"}
+              </p>
               <p className="text-sm leading-6">{message.content}</p>
             </article>
           ))
@@ -64,7 +85,7 @@ export function ChatPanel({
 
         {isLoading ? (
           <p
-            className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800"
+            className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 shadow-sm"
             role="status"
           >
             Generating answer...
@@ -73,7 +94,7 @@ export function ChatPanel({
 
         {error ? (
           <p
-            className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
+            className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 shadow-sm"
             role="alert"
           >
             {error}
@@ -81,7 +102,10 @@ export function ChatPanel({
         ) : null}
       </div>
 
-      <form className="border-t border-zinc-200 p-5" onSubmit={handleSubmit}>
+      <form
+        className="border-t border-zinc-200 bg-white p-5"
+        onSubmit={handleSubmit}
+      >
         <label
           className="text-sm font-semibold text-zinc-950"
           htmlFor="chat-question"
@@ -90,7 +114,7 @@ export function ChatPanel({
         </label>
         <div className="mt-3 flex flex-col gap-3 sm:flex-row">
           <input
-            className="min-h-11 flex-1 rounded-lg border border-zinc-300 bg-white px-4 text-sm text-zinc-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+            className="min-h-12 flex-1 rounded-lg border border-zinc-300 bg-zinc-50 px-4 text-sm text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-100"
             id="chat-question"
             onChange={(event) => setQuestion(event.target.value)}
             placeholder="Ask about a staged document"
@@ -98,7 +122,7 @@ export function ChatPanel({
             value={question}
           />
           <button
-            className="min-h-11 rounded-lg bg-zinc-950 px-5 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-zinc-300"
+            className="min-h-12 rounded-lg bg-zinc-950 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:shadow-none"
             disabled={isLoading || question.trim().length === 0}
             type="submit"
           >

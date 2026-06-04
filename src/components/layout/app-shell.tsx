@@ -82,15 +82,18 @@ export function AppShell() {
   }
 
   return (
-    <main className="min-h-screen bg-stone-100 text-zinc-950">
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-5 sm:px-6 lg:px-8">
-        <header className="rounded-lg border border-zinc-200 bg-white px-5 py-5 shadow-sm">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+    <main className="dashboard-backdrop min-h-screen text-zinc-950">
+      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-6 sm:px-6 lg:px-8">
+        <header className="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-[0_20px_60px_rgba(24,24,27,0.08)]">
+          <div className="border-b border-zinc-100 bg-zinc-950 px-5 py-2 text-[11px] font-semibold uppercase text-zinc-100">
+            RAG portfolio app
+          </div>
+          <div className="flex flex-col gap-6 px-5 py-6 lg:flex-row lg:items-end lg:justify-between lg:px-6">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
-                RAG portfolio app
+              <p className="text-xs font-semibold uppercase text-emerald-700">
+                Document-grounded AI workspace
               </p>
-              <h1 className="mt-3 text-3xl font-semibold tracking-tight text-zinc-950 sm:text-4xl">
+              <h1 className="mt-3 text-3xl font-semibold text-zinc-950 sm:text-4xl">
                 {APP_NAME}
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-600 sm:text-base">
@@ -98,10 +101,13 @@ export function AppShell() {
               </p>
             </div>
 
-            <dl className="grid grid-cols-3 gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-2">
+            <dl className="grid grid-cols-3 gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-2 shadow-inner">
               {dashboardStats.map((stat) => (
-                <div className="min-w-20 px-3 py-2 text-center" key={stat.label}>
-                  <dt className="text-xs font-medium uppercase text-zinc-500">
+                <div
+                  className="min-w-20 rounded-md bg-white px-3 py-2 text-center shadow-sm ring-1 ring-zinc-200/80"
+                  key={stat.label}
+                >
+                  <dt className="text-[11px] font-semibold uppercase text-zinc-500">
                     {stat.label}
                   </dt>
                   <dd className="mt-1 text-xl font-semibold text-zinc-950">
@@ -113,8 +119,8 @@ export function AppShell() {
           </div>
         </header>
 
-        <section className="grid flex-1 gap-4 py-4 lg:grid-cols-[390px_minmax(0,1fr)]">
-          <div className="space-y-4">
+        <section className="grid flex-1 gap-5 py-5 lg:grid-cols-[400px_minmax(0,1fr)]">
+          <div className="space-y-5">
             <DocumentUploadPanel
               error={uploadError}
               onFileSelected={handleFileSelected}
