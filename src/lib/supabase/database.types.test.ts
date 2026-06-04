@@ -70,6 +70,17 @@ describe("Supabase RAG schema migration", () => {
       /revoke execute\s+on function public\.match_document_chunks[\s\S]+from public, anon, authenticated/i,
     );
   });
+
+  it("grants service-role table and sequence access for server-side APIs", () => {
+    const migration = readRequiredFile(migrationPath);
+
+    expect(migration).toMatch(
+      /grant select,\s*insert,\s*update,\s*delete\s+on table\s+public\.documents,\s+public\.document_chunks,\s+public\.chat_sessions,\s+public\.chat_messages\s+to service_role/i,
+    );
+    expect(migration).toMatch(
+      /grant usage,\s*select,\s*update\s+on sequence\s+public\.documents_id_seq,\s+public\.document_chunks_id_seq,\s+public\.chat_sessions_id_seq,\s+public\.chat_messages_id_seq\s+to service_role/i,
+    );
+  });
 });
 
 describe("Supabase database types", () => {

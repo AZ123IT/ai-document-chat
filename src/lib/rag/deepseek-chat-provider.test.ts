@@ -75,7 +75,7 @@ describe("createDeepSeekChatProvider", () => {
       "https://api.deepseek.com/chat/completions",
       expect.objectContaining({
         body: JSON.stringify({
-          model: "deepseek-chat",
+          model: "deepseek-v4-flash",
           messages: [{ role: "user", content: "Hello" }],
           stream: false,
         }),

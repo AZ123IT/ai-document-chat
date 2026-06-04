@@ -11,6 +11,8 @@ type ChatPanelProps = {
   onSubmit(question: string): Promise<void>;
 };
 
+const CHAT_MODEL_LABEL = "deepseek-v4-flash";
+
 export function ChatPanel({
   messages,
   isLoading,
@@ -44,7 +46,7 @@ export function ChatPanel({
         </div>
         <span className="inline-flex items-center gap-2 rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 shadow-sm">
           <span className="h-2 w-2 rounded-full bg-emerald-500" />
-          claude-sonnet-4
+          {CHAT_MODEL_LABEL}
         </span>
       </header>
 

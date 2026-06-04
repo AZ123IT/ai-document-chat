@@ -27,6 +27,8 @@ describe("Home", () => {
     expect(screen.getByRole("heading", { name: "Documents" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Ask your documents" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Source citations" })).toBeInTheDocument();
+    expect(screen.getByText("deepseek-v4-flash")).toBeInTheDocument();
+    expect(screen.queryByText("claude-sonnet-4")).not.toBeInTheDocument();
     expect(await screen.findByText("No documents indexed")).toBeInTheDocument();
   });
 

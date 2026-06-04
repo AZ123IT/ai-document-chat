@@ -78,6 +78,20 @@ alter table public.document_chunks enable row level security;
 alter table public.chat_sessions enable row level security;
 alter table public.chat_messages enable row level security;
 
+grant select, insert, update, delete
+  on table public.documents,
+    public.document_chunks,
+    public.chat_sessions,
+    public.chat_messages
+  to service_role;
+
+grant usage, select, update
+  on sequence public.documents_id_seq,
+    public.document_chunks_id_seq,
+    public.chat_sessions_id_seq,
+    public.chat_messages_id_seq
+  to service_role;
+
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
