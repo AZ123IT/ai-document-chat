@@ -28,7 +28,7 @@ If using DeepSeek, set these values privately in `.env.local`:
 LLM_PROVIDER=deepseek
 DEEPSEEK_API_KEY=
 DEEPSEEK_BASE_URL=https://api.deepseek.com
-DEEPSEEK_CHAT_MODEL=deepseek-chat
+DEEPSEEK_CHAT_MODEL=deepseek-v4-flash
 ```
 
 Never paste real keys into issues, screenshots, commits, or docs.

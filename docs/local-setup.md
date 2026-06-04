@@ -40,7 +40,7 @@ SUPABASE_SERVICE_ROLE_KEY=
 LLM_PROVIDER=deepseek
 DEEPSEEK_API_KEY=
 DEEPSEEK_BASE_URL=https://api.deepseek.com
-DEEPSEEK_CHAT_MODEL=deepseek-chat
+DEEPSEEK_CHAT_MODEL=deepseek-v4-flash
 ```
 
 For no-cost local UI development, keep:

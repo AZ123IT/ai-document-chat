@@ -135,7 +135,7 @@ describe("local demo readiness", () => {
 
     expect(envExample).toContain("LLM_PROVIDER=mock");
     expect(envExample).toContain("DEEPSEEK_BASE_URL=https://api.deepseek.com");
-    expect(envExample).toContain("DEEPSEEK_CHAT_MODEL=deepseek-chat");
+    expect(envExample).toContain("DEEPSEEK_CHAT_MODEL=deepseek-v4-flash");
 
     for (const pattern of secretPatterns) {
       expect(envExample).not.toMatch(pattern);

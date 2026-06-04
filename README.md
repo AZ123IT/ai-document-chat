@@ -171,7 +171,7 @@ SUPABASE_SERVICE_ROLE_KEY=
 LLM_PROVIDER=mock
 DEEPSEEK_API_KEY=
 DEEPSEEK_BASE_URL=https://api.deepseek.com
-DEEPSEEK_CHAT_MODEL=deepseek-chat
+DEEPSEEK_CHAT_MODEL=deepseek-v4-flash
 ```
 
 Notes:
@@ -222,7 +222,7 @@ For real chat responses, set these values privately in `.env.local`:
 LLM_PROVIDER=deepseek
 DEEPSEEK_API_KEY=
 DEEPSEEK_BASE_URL=https://api.deepseek.com
-DEEPSEEK_CHAT_MODEL=deepseek-chat
+DEEPSEEK_CHAT_MODEL=deepseek-v4-flash
 ```
 
 The provider uses DeepSeek's OpenAI-compatible chat completions API. The model
