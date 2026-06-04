@@ -31,7 +31,9 @@ export function AppShell() {
   );
 
   function handleFileSelected(file: File) {
-    if (!isSupportedDocument(file)) {
+    const documentType = getSupportedDocumentType(file);
+
+    if (!documentType) {
       setUploadError("Only PDF and TXT files are supported.");
       return;
     }
@@ -41,9 +43,9 @@ export function AppShell() {
       {
         id: `${file.name}-${file.size}-${file.lastModified}`,
         name: file.name,
-        type: getDocumentType(file),
+        type: documentType,
         sizeLabel: formatFileSize(file.size),
-        status: "Ready for future upload API",
+        status: "Staged locally",
       },
     ]);
   }
@@ -133,23 +135,50 @@ export function AppShell() {
   );
 }
 
-function isSupportedDocument(file: File) {
+function getSupportedDocumentType(file: File): LocalDocument["type"] | null {
   const fileName = file.name.toLowerCase();
-  const type = file.type.toLowerCase();
+  const extensionType = getSupportedExtensionDocumentType(fileName);
+  const mimeType = getSupportedMimeDocumentType(file.type);
 
-  return (
-    type === "application/pdf" ||
-    type === "text/plain" ||
-    fileName.endsWith(".pdf") ||
-    fileName.endsWith(".txt")
-  );
+  if (file.type && !mimeType) {
+    return null;
+  }
+
+  if (extensionType && mimeType && extensionType !== mimeType) {
+    return null;
+  }
+
+  return extensionType ?? mimeType;
 }
 
-function getDocumentType(file: File): LocalDocument["type"] {
-  return file.name.toLowerCase().endsWith(".pdf") ||
-    file.type.toLowerCase() === "application/pdf"
-    ? "PDF"
-    : "TXT";
+function getSupportedExtensionDocumentType(
+  fileName: string,
+): LocalDocument["type"] | null {
+  if (fileName.endsWith(".pdf")) {
+    return "PDF";
+  }
+
+  if (fileName.endsWith(".txt")) {
+    return "TXT";
+  }
+
+  return null;
+}
+
+function getSupportedMimeDocumentType(
+  mimeType: string,
+): LocalDocument["type"] | null {
+  const normalizedMimeType = mimeType.trim().toLowerCase();
+
+  if (normalizedMimeType === "application/pdf") {
+    return "PDF";
+  }
+
+  if (normalizedMimeType === "text/plain") {
+    return "TXT";
+  }
+
+  return null;
 }
 
 function formatFileSize(bytes: number) {

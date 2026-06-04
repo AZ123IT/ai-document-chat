@@ -3,7 +3,7 @@ export type LocalDocument = {
   name: string;
   type: "PDF" | "TXT";
   sizeLabel: string;
-  status: "Ready for future upload API";
+  status: "Staged locally";
 };
 
 export type SourceCitation = {

@@ -22,7 +22,7 @@ describe("Home", () => {
     expect(screen.getByRole("heading", { name: "Source citations" })).toBeInTheDocument();
   });
 
-  it("shows a selected PDF or TXT file without calling an upload endpoint", async () => {
+  it("shows a selected PDF file without calling an upload endpoint", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response("{}"),
@@ -36,7 +36,26 @@ describe("Home", () => {
     await user.upload(screen.getByLabelText("Choose document"), file);
 
     expect(screen.getByText("atlas-notes.pdf")).toBeInTheDocument();
-    expect(screen.getByText("Ready for future upload API")).toBeInTheDocument();
+    expect(screen.getByText("Staged locally")).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("shows a selected TXT file without calling an upload endpoint", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response("{}"),
+    );
+
+    render(<Home />);
+
+    const file = new File(["Research notes"], "atlas-notes.txt", {
+      type: "text/plain",
+    });
+    await user.upload(screen.getByLabelText("Choose document"), file);
+
+    expect(screen.getByText("atlas-notes.txt")).toBeInTheDocument();
+    expect(screen.getByText("TXT - 14 B")).toBeInTheDocument();
+    expect(screen.getByText("Staged locally")).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -60,6 +79,29 @@ describe("Home", () => {
       screen.getByText("Only PDF and TXT files are supported."),
     ).toBeInTheDocument();
     expect(screen.queryByText("budget.csv")).not.toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects files when the extension and MIME type do not match", () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response("{}"),
+    );
+
+    render(<Home />);
+
+    const file = new File(["Not really a PDF"], "notes.pdf", {
+      type: "text/plain",
+    });
+    fireEvent.change(screen.getByLabelText("Choose document"), {
+      target: {
+        files: [file],
+      },
+    });
+
+    expect(
+      screen.getByText("Only PDF and TXT files are supported."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("notes.pdf")).not.toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
