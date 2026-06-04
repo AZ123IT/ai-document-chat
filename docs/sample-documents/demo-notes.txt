@@ -1,0 +1,23 @@
+Project Atlas Demo Notes
+
+Project Atlas is an internal knowledge base prototype for document-grounded
+question answering. The system lets a user upload short PDF or TXT files, split
+the extracted text into deterministic chunks, and retrieve the most relevant
+chunks for each question.
+
+Authentication is intentionally out of scope for the MVP. The demo focuses on a
+single local workspace so reviewers can inspect the retrieval pipeline, source
+citations, and chat history without account setup.
+
+The retrieval flow has four steps. First, the uploaded document is parsed into
+plain text. Second, the text is chunked with stable chunk indexes and offsets.
+Third, each chunk is stored in Supabase with a vector embedding. Fourth, a user
+question is embedded and matched against stored chunks through the vector search
+RPC.
+
+Answers should be grounded in retrieved evidence. When the assistant responds,
+it should cite the chunks that supported the answer instead of guessing from
+general model knowledge.
+
+For a demo question, ask: What does Project Atlas say about authentication and
+retrieval?

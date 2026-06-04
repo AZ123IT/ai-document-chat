@@ -5,14 +5,16 @@ and returning document-grounded answers with source citations.
 
 ## Current Status
 
-Milestone 1 is the project foundation only. Document upload, embeddings,
-Supabase storage, semantic search, chat, and RAG are intentionally not
-implemented yet.
+The local portfolio MVP now includes document processing, Supabase schema and
+ingestion, semantic retrieval, RAG chat, a dashboard UI, document upload/list
+API routes, and an optional DeepSeek chat provider.
 
 ## Stack
 
 - Next.js + TypeScript
 - Tailwind CSS
+- Supabase Postgres + pgvector
+- DeepSeek-compatible chat provider interface
 - Vitest + Testing Library
 
 ## Local Setup
@@ -25,10 +27,14 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+See [docs/local-setup.md](docs/local-setup.md) and
+[docs/demo-checklist.md](docs/demo-checklist.md) for the full local demo flow.
+
 ## Verification
 
 ```bash
 npm run lint
 npm test
 npm run build
+npm run verify
 ```
