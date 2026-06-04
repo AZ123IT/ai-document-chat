@@ -91,6 +91,9 @@ export function AppShell() {
 
     if (!documentType) {
       setUploadError("Only PDF and TXT files are supported.");
+      setUploadSuccess(null);
+      setSelectedFile(null);
+      setSelectedDocument(null);
       return;
     }
 

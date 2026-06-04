@@ -112,7 +112,6 @@ describe("Home", () => {
         },
         ingestion: {
           chunkCount: 2,
-          chunkIds: [21, 22],
         },
       },
     });
@@ -159,7 +158,6 @@ describe("Home", () => {
         },
         ingestion: {
           chunkCount: 2,
-          chunkIds: [21, 22],
         },
       },
     });
@@ -253,6 +251,42 @@ describe("Home", () => {
       screen.getByText("Only PDF and TXT files are supported."),
     ).toBeInTheDocument();
     expect(screen.queryByText("notes.pdf")).not.toBeInTheDocument();
+    expect(getFetchCalls(fetchMock, "/api/documents", "POST")).toHaveLength(0);
+  });
+
+  it("clears the previously staged file after an invalid file selection", async () => {
+    const user = userEvent.setup();
+    const fetchMock = mockFetch({
+      documents: [],
+    });
+
+    render(<Home />);
+    await screen.findByText("No documents indexed");
+
+    await user.upload(
+      screen.getByLabelText("Choose document"),
+      new File(["Research notes"], "atlas-notes.txt", {
+        type: "text/plain",
+      }),
+    );
+    expect(screen.getByText("atlas-notes.txt")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Upload document" }),
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Choose document"), {
+      target: {
+        files: [new File(["name,total"], "budget.csv", { type: "text/csv" })],
+      },
+    });
+
+    expect(
+      screen.getByText("Only PDF and TXT files are supported."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("atlas-notes.txt")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Upload document" }),
+    ).not.toBeInTheDocument();
     expect(getFetchCalls(fetchMock, "/api/documents", "POST")).toHaveLength(0);
   });
 
@@ -378,7 +412,7 @@ function mockFetch({
         Response.json(
           uploadResponse ?? {
             document: null,
-            ingestion: { chunkCount: 0, chunkIds: [] },
+            ingestion: { chunkCount: 0 },
           },
           { status: uploadStatus },
         ),

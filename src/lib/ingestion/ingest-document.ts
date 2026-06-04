@@ -72,6 +72,13 @@ export type IngestDocumentResult = {
   chunkIds: number[];
 };
 
+export class IngestionContentValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "IngestionContentValidationError";
+  }
+}
+
 const DEFAULT_CHUNK_OPTIONS = {
   chunkSize: 1000,
   chunkOverlap: 200,
@@ -90,13 +97,17 @@ export async function ingestDocument({
   });
 
   if (extractedDocument.text.trim().length === 0) {
-    throw new Error("Document does not contain extractable text");
+    throw new IngestionContentValidationError(
+      "Document does not contain extractable text",
+    );
   }
 
   const chunks = chunkExtractedDocument(extractedDocument, chunkOptions);
 
   if (chunks.length === 0) {
-    throw new Error("Document does not contain extractable text");
+    throw new IngestionContentValidationError(
+      "Document does not contain extractable text",
+    );
   }
 
   const embeddings = await embeddingProvider.embedDocuments(

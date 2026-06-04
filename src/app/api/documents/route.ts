@@ -2,7 +2,10 @@ import { Buffer } from "node:buffer";
 
 import { createPlaceholderEmbeddingProvider } from "@/lib/ingestion/embedding-provider";
 import { IngestionFileValidationError } from "@/lib/ingestion/file-validation";
-import { ingestDocument } from "@/lib/ingestion/ingest-document";
+import {
+  IngestionContentValidationError,
+  ingestDocument,
+} from "@/lib/ingestion/ingest-document";
 import type { Tables } from "@/lib/supabase/database.types";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -88,7 +91,6 @@ export async function POST(request: Request) {
         },
         ingestion: {
           chunkCount: result.chunkCount,
-          chunkIds: result.chunkIds,
         },
       },
       { status: 201 },
@@ -96,7 +98,8 @@ export async function POST(request: Request) {
   } catch (error) {
     if (
       error instanceof DocumentUploadValidationError ||
-      error instanceof IngestionFileValidationError
+      error instanceof IngestionFileValidationError ||
+      isExpectedIngestionContentError(error)
     ) {
       return Response.json({ error: error.message }, { status: 400 });
     }
@@ -110,6 +113,16 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
+}
+
+function isExpectedIngestionContentError(
+  error: unknown,
+): error is IngestionContentValidationError {
+  return (
+    error instanceof IngestionContentValidationError ||
+    (error instanceof Error &&
+      error.message === "Document does not contain extractable text")
+  );
 }
 
 async function parseDocumentUploadFile(request: Request) {

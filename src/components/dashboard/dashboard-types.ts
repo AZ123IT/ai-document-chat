@@ -32,7 +32,6 @@ export type UploadDocumentResponse = {
   };
   ingestion: {
     chunkCount: number;
-    chunkIds: number[];
   };
 };
 

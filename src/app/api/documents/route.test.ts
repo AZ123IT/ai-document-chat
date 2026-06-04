@@ -189,7 +189,6 @@ describe("POST /api/documents", () => {
         },
         ingestion: {
           chunkCount: 2,
-          chunkIds: [7, 8],
         },
       });
     },
@@ -268,6 +267,38 @@ describe("POST /api/documents", () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
       error: "PDF document is missing a valid PDF header",
+    });
+  });
+
+  it("returns 400 for documents with no extractable text", async () => {
+    const formData = new FormData();
+    formData.set(
+      "file",
+      new File(["   \n\t"], "blank.txt", {
+        type: "text/plain",
+      }),
+    );
+    formData.set("fileName", "blank.txt");
+    createServerSupabaseClientMock.mockReturnValue({ from: vi.fn() });
+    createPlaceholderEmbeddingProviderMock.mockReturnValue({
+      embedDocuments: vi.fn(),
+      embedQuery: vi.fn(),
+    });
+    ingestDocumentMock.mockRejectedValue(
+      new Error("Document does not contain extractable text"),
+    );
+
+    const { POST } = await import("./route");
+    const response = await POST(
+      new Request("http://localhost/api/documents", {
+        method: "POST",
+        body: formData,
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "Document does not contain extractable text",
     });
   });
 
