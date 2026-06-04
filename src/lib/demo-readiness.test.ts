@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 
 const requiredDocs = [
   "docs/local-setup.md",
@@ -62,6 +62,16 @@ describe("local demo readiness", () => {
     }
   });
 
+  it("keeps Markdown documentation free of obvious secrets", () => {
+    for (const docPath of listMarkdownFiles("docs")) {
+      const doc = readFileSync(docPath, "utf8");
+
+      for (const pattern of secretPatterns) {
+        expect(doc, `${docPath} should not contain secrets`).not.toMatch(pattern);
+      }
+    }
+  });
+
   it("keeps .env.example as placeholders for sensitive values", () => {
     const envExample = readFileSync(".env.example", "utf8");
     const sensitiveKeys = [
@@ -83,3 +93,15 @@ describe("local demo readiness", () => {
     }
   });
 });
+
+function listMarkdownFiles(directory: string): string[] {
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const entryPath = `${directory}/${entry.name}`;
+
+    if (entry.isDirectory()) {
+      return listMarkdownFiles(entryPath);
+    }
+
+    return entry.isFile() && entry.name.endsWith(".md") ? [entryPath] : [];
+  });
+}

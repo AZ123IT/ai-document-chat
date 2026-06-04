@@ -2,6 +2,10 @@
 
 Use this checklist for a realistic local portfolio demo.
 
+Note: this milestone still uses placeholder embeddings. Use the demo to show
+the full upload, retrieval, citation, and chat persistence flow; treat semantic
+ranking quality as a future provider integration step.
+
 ## Before The Demo
 
 - [ ] Run `npm install`
