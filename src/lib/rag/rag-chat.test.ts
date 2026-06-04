@@ -55,6 +55,7 @@ describe("runRagChat", () => {
         session_id: 55,
         role: "user",
         content: "How does Atlas answer?",
+        citations: [],
       },
       {
         session_id: 55,

@@ -243,6 +243,7 @@ async function saveChatMessages({
         session_id: sessionId,
         role: "user",
         content: question,
+        citations: [] as Json,
       },
       {
         session_id: sessionId,
