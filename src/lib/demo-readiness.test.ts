@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 
 const requiredDocs = [
+  "docs/architecture.md",
   "docs/local-setup.md",
   "docs/demo-checklist.md",
   "docs/troubleshooting.md",
@@ -9,12 +10,35 @@ const requiredDocs = [
 
 const sampleDocumentPath = "docs/sample-documents/demo-notes.txt";
 
+const requiredReadmeHeadings = [
+  "# AI Document Chat",
+  "## Demo Preview",
+  "## Features",
+  "## Tech Stack",
+  "## Architecture",
+  "## RAG Workflow",
+  "## Folder Structure",
+  "## Local Setup",
+  "## Environment Variables",
+  "## Supabase Setup",
+  "## DeepSeek Setup",
+  "## Demo Flow",
+  "## Testing",
+  "## Security Notes",
+  "## Known Limitations",
+  "## Future Improvements",
+  "## Resume Bullet Points",
+] as const;
+
 const secretPatterns = [
   /sk-[A-Za-z0-9_-]{20,}/,
   /ghp_[A-Za-z0-9_]{20,}/,
   /github_pat_[A-Za-z0-9_]{20,}/,
   /sbp_[A-Za-z0-9_]{20,}/,
   /eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}/,
+  /^OPENAI_API_KEY=[^\r\n]+/m,
+  /^SUPABASE_SERVICE_ROLE_KEY=[^\r\n]+/m,
+  /^DEEPSEEK_API_KEY=[^\r\n]+/m,
 ];
 
 describe("local demo readiness", () => {
@@ -47,6 +71,31 @@ describe("local demo readiness", () => {
     expect(troubleshooting).toContain("DeepSeek");
     expect(troubleshooting).toContain("Supabase");
     expect(troubleshooting).toContain("pdf-parse");
+
+    const architecture = readFileSync("docs/architecture.md", "utf8");
+    expect(architecture).toContain("```mermaid");
+    expect(architecture).toContain("Supabase");
+    expect(architecture).toContain("DeepSeek");
+  });
+
+  it("ships a portfolio README with the required GitHub sections", () => {
+    const readme = readFileSync("README.md", "utf8");
+
+    for (const heading of requiredReadmeHeadings) {
+      expect(readme, `README should contain ${heading}`).toContain(heading);
+    }
+
+    expect(readme).toContain("docs/local-setup.md");
+    expect(readme).toContain("docs/demo-checklist.md");
+    expect(readme).toContain("docs/troubleshooting.md");
+    expect(readme).toContain("docs/architecture.md");
+    expect(readme).toContain("```mermaid");
+    expect(readme).toContain("placeholder");
+    expect(readme).toContain("Supabase Postgres");
+    expect(readme).toContain("pgvector");
+    expect(readme).toContain("DeepSeek");
+    expect(readme).toContain("Do not commit `.env.local`");
+    expect(readme).toContain("The app is not deployed yet.");
   });
 
   it("ships a safe sample document for document Q&A demos", () => {
@@ -63,7 +112,7 @@ describe("local demo readiness", () => {
   });
 
   it("keeps Markdown documentation free of obvious secrets", () => {
-    for (const docPath of listMarkdownFiles("docs")) {
+    for (const docPath of ["README.md", ...listMarkdownFiles("docs")]) {
       const doc = readFileSync(docPath, "utf8");
 
       for (const pattern of secretPatterns) {
