@@ -10,22 +10,12 @@ dashboard UI. It is a local MVP, not a production SaaS product.
 
 ## Demo Preview
 
-Screenshots are intentionally not checked in yet. Recommended screenshots before
-publishing the repository:
+![AI Document Chat dashboard](docs/screenshots/local-demo-portfolio-view.png)
 
-1. Dashboard with the upload panel, document library, chat workspace, and
-   evidence sidebar visible.
-2. Successful TXT upload using
-   `docs/sample-documents/demo-notes.txt`.
-3. A completed chat answer with source citations rendered.
+Additional local demo evidence:
 
-Suggested location:
-
-```text
-docs/screenshots/dashboard.png
-docs/screenshots/upload-success.png
-docs/screenshots/rag-answer.png
-```
+- [Full-page dashboard screenshot](docs/screenshots/local-demo-full-page.png)
+- [Source citation detail screenshot](docs/screenshots/local-demo-evidence-detail.png)
 
 ## Features
 
