@@ -23,6 +23,7 @@
 # misc
 .DS_Store
 *.pem
+/运行截图.png
 
 # debug
 npm-debug.log*
